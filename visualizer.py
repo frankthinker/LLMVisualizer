@@ -11,7 +11,14 @@ from plotly.subplots import make_subplots
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from .gpt2_loader import GenerationArtifacts
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent))
+    from gpt2_loader import GenerationArtifacts
+else:  # pragma: no cover
+    from .gpt2_loader import GenerationArtifacts
 
 THEME_TEMPLATE = {"light": "plotly_white", "dark": "plotly_dark"}
 LOGIC_KEYWORDS = {

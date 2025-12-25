@@ -197,7 +197,7 @@ def load_model_components(
         _notify(progress_callback, "download", 100)
         return _MODEL_CACHE[cache_key]
 
-    _notify(progress_callback, "download", 10)
+    _notify(progress_callback, "download", 5)
     components = _load_model_components(
         model_size,
         normalized_endpoint,
@@ -206,6 +206,7 @@ def load_model_components(
     )
     _MODEL_CACHE[cache_key] = components
     _clear_other_models(cache_key)
+    _notify(progress_callback, "download", 90)
     _notify(progress_callback, "download", 100)
     return components
 
@@ -225,11 +226,11 @@ def _load_model_components(
         else:
             os.environ.pop("HF_ENDPOINT", None)
     try:
-        _notify(progress_callback, "download", 30)
+        _notify(progress_callback, "download", 20)
         tokenizer = AutoTokenizer.from_pretrained(spec["id"])
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
-        _notify(progress_callback, "download", 60)
+        _notify(progress_callback, "download", 40)
         model_kwargs = dict(
             low_cpu_mem_usage=True,
             torch_dtype=_resolve_dtype(resolve_device()),
@@ -245,6 +246,7 @@ def _load_model_components(
                 spec["id"],
                 **model_kwargs,
             )
+        _notify(progress_callback, "download", 70)
     except OSError as exc:
         if tried_mirror:
             raise
@@ -344,7 +346,8 @@ def run_generation(
     input_ids = encoded["input_ids"].to(device)
     attention_mask = encoded["attention_mask"].to(device)
 
-    _notify(progress_callback, "inference", 25)
+    _notify(progress_callback, "inference", 15)
+    _notify(progress_callback, "inference", 30)
     with torch.no_grad():
         generation = model.generate(
             input_ids=input_ids,
@@ -358,7 +361,7 @@ def run_generation(
             output_scores=True,
         )
 
-    _notify(progress_callback, "inference", 60)
+    _notify(progress_callback, "inference", 55)
     sequences = generation.sequences[0]
     full_token_ids = sequences.detach().cpu()
     generated_ids = sequences[input_ids.shape[-1] :]
@@ -372,12 +375,13 @@ def run_generation(
         start_position=input_ids.shape[-1],
     )
 
+    _notify(progress_callback, "inference", 70)
     with torch.no_grad():
         forward_outputs = model(
-        sequences.unsqueeze(0),
-        output_attentions=True,
-        output_hidden_states=True,
-    )
+            sequences.unsqueeze(0),
+            output_attentions=True,
+            output_hidden_states=True,
+        )
 
     _notify(progress_callback, "inference", 85)
     attentions = _to_numpy_layers(forward_outputs.attentions)
@@ -385,6 +389,7 @@ def run_generation(
 
     tokens = _format_tokens(tokenizer, full_token_ids)
 
+    _notify(progress_callback, "inference", 95)
     _notify(progress_callback, "inference", 100)
     return GenerationArtifacts(
         prompt=normalized_prompt,
